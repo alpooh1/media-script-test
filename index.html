@@ -1,221 +1,400 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>미디어 + 스크립트</title>
-<style>
-  :root{
-    --bg:#0b1020; --border:rgba(255,255,255,.12);
-    --text:#e9ecf5; --muted:#aab3d6; --radius:16px;
-    --shadow:0 12px 28px rgba(0,0,0,.35);
-    --sans: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, Helvetica, Arial;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:var(--sans);color:var(--text);background:var(--bg);padding:18px}
-  .frame{
-    max-width:1200px;margin:0 auto;border:1px solid var(--border);border-radius:var(--radius);
-    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-    box-shadow:var(--shadow);overflow:hidden
-  }
-  .hd{padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);
-      display:flex;justify-content:space-between;gap:10px;align-items:center}
-  .hd .title{font-weight:700;font-size:14px}
-  .hd .meta{font-size:12px;color:var(--muted)}
-  .lesson{display:grid;grid-template-columns:1fr;gap:12px;padding:14px}
-  @media (min-width:980px){.lesson{grid-template-columns:1fr 2fr}}
-  .pane{
-    border:1px solid var(--border);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.18);
-    min-height:480px;display:flex;flex-direction:column
-  }
-  .pane-hd{padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);
-           display:flex;justify-content:space-between;gap:10px;align-items:center}
-  .pane-hd strong{font-size:13px}
-  .pane-hd .small{font-size:12px;color:var(--muted)}
-  .pane-bd{padding:12px;flex:1 1 auto;min-height:0}
-  .pane-bd.scrollable{overflow:auto}
-  .iframe-wrap{position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#000}
-  .iframe-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  .content{white-space:pre-wrap;line-height:1.65;font-size:14px}
-  .hint{font-size:12px;color:var(--muted);line-height:1.5}
-  .media-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-  button{border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:700}
-  button.primary{background:rgba(106,169,255,.14)}
-  .chip{font-size:12px;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04)}
-  audio{width:100%}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>미디어+스크립트 빌더 (YouTube 기본 플레이어)</title>
+  <style>
+    :root{
+      --bg:#0b1020; --text:#e9ecf5; --muted:#aab3d6; --border:rgba(255,255,255,.12);
+      --shadow:0 12px 28px rgba(0,0,0,.35); --radius:16px;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, Helvetica, Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text);
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(106,169,255,.18), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(255,106,214,.12), transparent 55%),
+                  var(--bg);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:20px}
+    .topbar{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;
+      padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+    }
+    .topbar h1{font-size:16px;margin:0}
+    .pill{font-size:12px;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:999px}
+    .mono{font-family:var(--mono)}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+    @media (min-width:980px){ .grid{grid-template-columns:420px 1fr;} }
+    .card{
+      border:1px solid var(--border);border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: var(--shadow); overflow:hidden;
+    }
+    .hd{padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);
+        display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .hd .title{font-weight:800;font-size:13px}
+    .bd{padding:14px}
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    input[type="text"], textarea{
+      width:100%; background:rgba(0,0,0,.25); border:1px solid var(--border);
+      border-radius:12px; padding:10px 12px; color:var(--text); outline:none;
+    }
+    textarea{min-height:220px;resize:vertical;line-height:1.5}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{
+      border:1px solid var(--border); background:rgba(255,255,255,.06); color:var(--text);
+      padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:800;
+    }
+    button.primary{background:rgba(106,169,255,.14)}
+    .hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+    .badge{font-size:12px;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04)}
+    .error{margin-top:10px;font-size:12px;color:#ffb3c1}
+
+    /* 레이아웃 */
+    .lesson{display:grid;grid-template-columns:1fr;gap:12px;padding:14px}
+    @media (min-width:980px){ .lesson{grid-template-columns:1fr 2fr;} }
+
+    /* 오른쪽 스크롤 고정 */
+    .pane{
+      border:1px solid var(--border);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.18);
+      display:flex;flex-direction:column;
+      height: 70vh;
+      min-height: 520px;
+      max-height: 820px;
+    }
+    @media (max-width: 979px){
+      .pane{ height: 60vh; min-height: 420px; }
+    }
+    .pane-hd{
+      padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);
+      display:flex;justify-content:space-between;align-items:center;gap:10px;flex:0 0 auto;
+    }
+    .pane-hd .small{font-size:12px;color:var(--muted)}
+    .pane-bd{padding:12px;flex:1 1 auto;min-height:0}
+    .pane-bd.scrollable{overflow:auto}
+    .content{white-space:pre-wrap;line-height:1.65;font-size:14px}
+
+    .iframe-wrap{position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#000}
+    .iframe-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+    audio{width:100%}
+  </style>
 </head>
 <body>
-<div class="frame">
-  <div class="hd">
-    <div class="title">미디어 + 스크립트</div>
-    <div class="meta" id="meta"></div>
-  </div>
-  <div class="lesson">
-    <div class="pane">
-      <div class="pane-hd">
-        <div><strong>미디어</strong> <span class="small">왼쪽 1/3</span></div>
-        <span class="small" id="mtype">-</span>
-      </div>
-      <div class="pane-bd" id="mediaHost"></div>
+<div class="wrap">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1>미디어(왼쪽 1/3) + 스크립트(오른쪽 2/3)</h1>
+      <span class="pill">YouTube: 기본 플레이어로 재생</span>
     </div>
-    <div class="pane">
-      <div class="pane-hd">
-        <div><strong>스크립트/설명/문제</strong> <span class="small">오른쪽 2/3 (스크롤)</span></div>
-        <span class="small">15337 chars</span>
-      </div>
-      <div class="pane-bd scrollable">
-        <div class="content">Christmas, Bipolar, and Ozempic
+    <span class="pill mono" id="statusPill">READY</span>
+  </div>
 
-Show: The Carlat Psychiatry Podcast by Pocket Psychiatry: A Carlat Podcast
-Date: Dec 8, 2025
-Duration: 18m
-🔗 Show Link
-How to help bipolar patients manage holiday stress, and a new drug interaction with lithium and GLP1 agonists like semaglutide (Ozempic). CME: Take the CME Post-Test for this Episode Published On: 12/08/2025 Duration: 18 minutes, 33 seconds Chris Aiken, MD has disclosed no relevant financial or other interests in any commercial companies pertaining to this educational activity.
-SPEAKER_1
-You don&#39;t need to listen to this podcast to understand holiday stress, but tune in and you will learn three unique holiday stresses that worsen bipolar disorder and a new drug interaction between lithium and semaglutide, aka, ozimbic. Welcome to The Carlat Psychiatry Podcast, Keeping Psychiatry Honest Since 2003. I&#39;m Chris Aiken, the editor-in-chief of The Carlat Report, and I&#39;m all alone this holiday as our co-host, Kellie Newsome, is away at a conference, so I thought I&#39;d do a Christmas special. Psychiatric practice has its seasons, and this time of year, there&#39;s a steady buildup of patients who dread the holiday season. The reasons are many. Some are left out of holiday gatherings, others feel forced to attend and face awkward questions about what they are up to in life. Something people who are living on disability or just dropped out of school due to mental illness would rather not explain. Then there are patients who feel the burden of hosting parties themselves, buying presents and organizing parties. Not easy to do when your frontal lobes have ground to a halt, and you can&#39;t prioritize the steps of even the simplest of tasks, like getting dressed or brushing your teeth. Family traumas get reactivated. Dormant addictions are challenged by the chocolate babkas and yuletide wine. Then there&#39;s winter depression. One in five people have some degree of winter shifts into depressive symptoms, particularly those atypical ones of overeating, oversleeping and leaden paralysis. That&#39;s one in five for some degree of seasonal shifts. The number is much lower, around 5% for seasonal depression. But for patients with bipolar disorder, these seasonal shifts are pretty high, approaching 50% of patients with bipolar whose mood worsens in the wintertime. It is the morning light that is missing in winter depression, as the sun comes up later and with less intensity, particularly for people living north of, say, Tulsa, Oklahoma or Charlotte, North Carolina. And if your patient uses light therapy for winter depression, they&#39;re going to get the best results by sitting under the light early in the morning, usually between 5 and 8 a.m., closer to 5 a.m. if they are a morning person, and closer to 8 a.m. if they are a night owl. It is that bright burst of morning light that sets circadian rhythms, elevating cortisol and suppressing melatonin, setting the gears of the biological clock. That&#39;s why when patients have insomnia, my number one tip is to have them get out of bed at a regular time, earlier the better, and get plenty of light in the morning. Besides wintertime, there&#39;s another source of circadian disruption during the holidays that is particularly problematic for bipolar disorder. It&#39;s the disruption of social and work routines. It sounds benign, even a nice change of pace, but not for bipolar. Psychologist Ellen Frank found that the timing of four key daily routines keeps our mood episodes in check. They are the time you get out of bed, the time you start work, chores, school, or other goal-directed activities, the time you first have meaningful, engaging social interactions with others, and the time you eat dinner. Dr. Frank found that people can cut their bipolar episodes approximately in half by doing those things at the same time each day, give or take 30 minutes, through social rhythm therapy, where although they actually personalize this to find their own zeitgeibers or things that set their daily rhythm, those are just the most common that set it. Now, that kind of therapy is easier to do when the external world demands it, but during the holiday, everyone from court stenographers to college students can get a little out of sorts with their circadian rhythm. The key to staying stable in these times is to find replacements for those key routines. So, if your patient is used to starting work at 9 a.m., they should start another goal-directed activity at that time, like sightseeing, paying bills, or organizing the house, whatever works for them. They may need to be more intentional about a wind down time at night during the holidays with dim lights and soothing activities. And if they&#39;re traveling long distance by airplane, they can gradually adjust their sleep and wake times to avoid jet lag, which can trigger new episodes. Sleep researchers have created an online guide to prevent jet lag. Just Google jet lag rooster. It&#39;s on the Sleepopolis website now. This is only necessary for people traveling over two or more time zones. That is when the risk of mood episodes really starts to go up. More mania and psychosis when traveling east, and more depression when traveling west. And if you&#39;re like me and find that hard to remember, it&#39;s easy with a rhyme. The west gets depressed. Here&#39;s a preview of the CME quiz for this episode. You can earn CME for each episode through the link in the show notes or on our website. Which lifestyle factor slightly lowers lithium levels? A, shifting to a low-salt diet, B, sleeping less, C, exercising more, or D, eating healthier? This business about work and social rhythms being out of sort in December has gone on for a long time in human history. In fact, it&#39;s probably why we celebrate Christmas during this month. In agricultural society, December brings a rare mixture of abundance and leisure. Sounds nice. You have a lot of rich meat and produce to consume from the fall harvest. And before refrigeration, you had to eat it up before it all rotted. And there was little to do. It was too early for the planting season, too late for the harvest. So a good time for spiced wine and merriment. That&#39;s also how we got to so many Christmas presents. In the early days of Christmas, this is before the 1800s, most of the gift giving stemmed from this agricultural overflow. And the giving flowed from the aristocracy to the lower classes, buffering that ever-present class tension. On the 12th night of December, feudal lords were expected to give food, wine, or money to their peasants. If they did, the peasants blessed them. If they did not, their house might be vandalized. It was a bit like trick or treat in Halloween. This practice evolved into wassling or Christmas caroling, where people went door to door in wealthy neighborhoods singing carols in exchange for cookies or gifts. Today, that tradition of giving lives on in the form of charitable giving and Christmas bonuses. But as we shifted toward industrialization, the gift giving shifted away from the poor and toward our own children. That shift started in the 1820s. As urban shops and factories turned out manufactured luxuries that took the place of farmed produce. It was New York City that led much of that change, the heart of urban life. It was a poet there who set in diverse the gift giving tradition of Santa Claus in the 1823 poem The Night Before Christmas.
-SPEAKER_2
-Christmas is coming, the goose is getting fat. Christmas is coming, the goose is getting fat.
-SPEAKER_1
-With all these December lifestyle changes, eating more, exercising less, crossing time zones, will we see any shifts in lithium levels? Probably not. The best data on that that we have is a study from 2023, where they checked lithium levels every two weeks and co-related it with the various lifestyle factors that patients undergo. Sleep, diet, alcohol, and drug use had no impact on lithium levels in that study, unless they switched to a low-salt diet. Low-salt diets raise lithium. So in that study, only two lifestyle factors really stood out as causing lithium levels to shift, weight gain and exercise. And the effect here was very small. It was equivalent to lowering the lithium dose by 100 to 200 milligrams, or lowering the level by 0.03 to 0.05 milli equivalents per liter. So if you shifted from a sedentary to an active lifestyle, so exercising more, increasing your daily steps from 5,000 to 15,000, or if you dropped your BMI by two points, you would get a lower lithium level. We&#39;re talking like going from 0.65 to 0.6. Not a big difference. Again, exercising more and lowering your BMI can raise lithium a little bit, but most other lifestyles don&#39;t. And why do we see these lithium shifts with those life changes? It&#39;s likely that people sweat out more lithium when they exercise, and obesity does affect the rate of lithium clearance through the kidneys. Now, during the holidays, you might see lithium changes due to winter flu, which raises lithium through dehydration and that reflexive NSAID use that patients often do without even thinking about it, even if we&#39;ve warned them not to. But the most common reason for unusual levels in lithium is patient error, including the dosing errors that patients don&#39;t remember making, which is most of them, all the more when traveling around or changing routines. So when it comes to lithium, lifestyle changes are not gonna make a major difference in the levels, but there is a new drug interaction that you should look out for that can push lithium levels over the top in some people. Semidlutide, otherwise known as Ozempic, and possibly other GLP-1 agonists. This interaction first came to attention a year ago with a poster presentation at the Academy of Consultation Liaison Psychiatry in Miami. It was of a 59-year-old man whose lithium rose to 2.6 within six weeks of starting semidlutide. Then came published reports. In August, a 41-year-old woman whose lithium rose from 0.9 to 2.4 within a week of starting semidlutide. In October, a 63-year-old man who developed toxicity after starting semidlutide. Now, this patient had renal insufficiency already, but that wasn&#39;t the cause. His creatinine had been improving when the toxicity was discovered. And then this November, a report of three cases of lithium toxicity after starting semidlutide from the Mayo Clinic. I spoke with the Mayo team, and they&#39;re working on more investigations into this, and they have seen reports of terzepotide, that&#39;s zep-bound, also causing toxicity in one patient, and also a report from a user on Reddit of this interaction. So most of the cases are with semidlutide, but other GLP ones may be involved as well. These kinds of drug interactions tend to vary widely by patient. So you&#39;re probably not gonna see high lithium levels in everyone who takes semidlutide, but it&#39;s something to watch out for and check levels more often when they&#39;re starting a GLP. The mechanism is unknown, as is the exact rate and who&#39;s more at risk. But here&#39;s some likely candidates. First, the GLP ones can cause dehydration, which tends to raise lithium. That dehydration can also impair renal function, raising lithium further. But in the actual cases, the creatinine was usually stable, and I don&#39;t want to alarm you about any kind of additive renal damage with starting a GLP-1 while they&#39;re on lithium. There&#39;s also awareness that GLP-1s protect the kidneys, especially in people with diabetes. That&#39;s been confirmed. And a review of the FDA&#39;s Adverse Reporting System actually suggests that GLP-1s may protect against renal damage from lithium in the long term. So this renal problem on GLP-1s is rare and likely related to dehydration. Anyway, Roger McIntyre and his team are exploring more of this GLP-1 potential to protect the kidneys, something that hasn&#39;t fully panned out just yet. On to other reasons for this interaction. There may be obscure sodium channel interactions involved. And another reason is increased absorption. As the GLP-1s slow down the GI tract, more lithium gets absorbed. We also see this kind of lithium toxicity after gastric bypass for the same reason. Increased absorption in the GI tract after gastric bypass. So you can still use GLP-1s with lithium. You just got to be cautious about this potential and check the levels more often. But if you&#39;re thinking, like much of the media suggests, that GLP-1s are going to be a panacea for mental health, Santa has brought some bad news this Christmas. Recently, the GLP-1s disappointed in several key neuropsychiatric outcomes. In a randomized trial of major depression, they&#39;ve completely failed to reduce depression or improve cognition. It was the first randomized trial to test that kind of use. After some open-label studies had been promising. And they failed to prevent cognitive decline in two large industry-sponsored trials of dementia. Those trials involved semaglutide, and they sent the share price of Novo Nordisk plummeting. As for binge eating, you would think they would work there. But actually half the trials are negative, so it&#39;s not clear. So much for improving mental health with GLP-1s. But they do continue to gain support as an antidote for antipsychotic weight gain. Including this year, they were included in the Integrate Practice Guidelines for managing antipsychotic weight gain. In case you&#39;re wondering if it&#39;s okay for us in psychiatry to use them, it officially is. And as for lithium-induced weight gain, you could also use them there, I suppose, with caution over the interaction. But you&#39;re probably not going to need to. Lithium caused no discernible weight gain in recent meta-analyses of both long- and short-term trials, as well as in a review of FDA reports of severe weight gain on mood stabilizers. Lithium had no signal there. Surprised you? Surprised me. But lithium probably doesn&#39;t cause much weight gain, something we can reassure our patients about, that if it does, it&#39;s not statistically detectable. What I tend to see, though, is some increased water retention on lithium, which can resemble weight gain, but not very much. A heartfelt happy holidays to all of our podcast listeners. Thank you for sharing this episode with me, and we&#39;ll be back next week with our new Wounded Healers series. This holiday, I&#39;m gonna be working on a new edition of the Carlat Factbook series, one that is focused on complimentary and alternative treatments in psychiatry. But we have an update on our most popular bestselling factbook, The General One, has just been overhauled and is available on our website, along with my new textbook, Difficult to Treat Depression. In that book, you&#39;re gonna learn why lithium is one of the few medications that robustly prevents depression, even unipolar depression. The book features 15 antidotes for lithium side effects, including aspirin for sexual dysfunction, amiloride for nephrogenic diabetes insipidus, and n-acetylcysteine to prevent renal disease. It&#39;s available in print or as an audio guide at audible or amazon.com. Thank you, Brian Jansen, Robert Lund, and Sunita Stanslau for the Hanukkah and Christmas music.</div>
+  <div class="grid">
+    <!-- Builder -->
+    <div class="card">
+      <div class="hd"><div class="title">제작(입력 → 미리보기/내보내기)</div><span class="pill">Builder</span></div>
+      <div class="bd">
+        <label>미디어 링크 (YouTube/Vimeo 또는 오디오 URL)</label>
+        <input id="mediaUrl" type="text" placeholder="https://www.youtube.com/watch?v=... / https://vimeo.com/... / https://.../audio.mp3" />
+
+        <label>오른쪽 설명자료(스크립트/문제)</label>
+        <textarea id="docText" placeholder="긴 텍스트를 넣으면 오른쪽에 스크롤바가 생깁니다."></textarea>
+
+        <div class="row">
+          <button class="primary" id="applyBtn">미리보기 적용</button>
+          <button id="exportBtn">lesson.html 다운로드</button>
+          <button id="resetBtn">초기화</button>
+        </div>
+
+        <div class="hint">
+          YouTube는 커스텀 재생 버튼 없이, 영상 안의 기본 ▶ 버튼으로 재생합니다(GitHub Pages에서 가장 안정적).
+        </div>
+        <div class="error" id="errorBox" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="card">
+      <div class="hd">
+        <div class="title">미리보기</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge" id="mediaTypeBadge">Media: -</span>
+          <span class="badge" id="sourceBadge">Source: -</span>
+        </div>
+      </div>
+
+      <div class="lesson">
+        <!-- Left -->
+        <div class="pane">
+          <div class="pane-hd">
+            <div style="display:flex;gap:10px;align-items:center">
+              <strong style="font-size:13px">미디어</strong>
+              <span class="small">왼쪽 1/3</span>
+            </div>
+            <span class="pill mono" id="leftMeta">-</span>
+          </div>
+          <div class="pane-bd" id="mediaHost">
+            <div class="hint">미디어 링크를 넣고 “미리보기 적용”을 누르세요.</div>
+          </div>
+        </div>
+
+        <!-- Right -->
+        <div class="pane">
+          <div class="pane-hd">
+            <div style="display:flex;gap:10px;align-items:center">
+              <strong style="font-size:13px">스크립트/설명/문제</strong>
+              <span class="small">오른쪽 2/3 (스크롤)</span>
+            </div>
+            <span class="pill mono" id="rightMeta">-</span>
+          </div>
+          <div class="pane-bd scrollable">
+            <div class="content" id="docHost">오른쪽에 텍스트가 표시됩니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:0 14px 14px">
+        <div class="hint">YouTube 재생은 iframe 기본 UI로 처리합니다.</div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  const url = "https://www.youtube.com/watch?v=dQw4w9WgXcQhttps://youtu.be/nshUuh2cZbU?si=xL7_LRKHaDqQlubY";
-
-  function isAudioUrl(u){
-    try{ const x=new URL(u); return /(\.mp3|\.m4a|\.ogg|\.wav|\.webm)$/i.test(x.pathname); }catch(e){ return false; }
+  // ===== Helpers =====
+  function isAudioUrl(url){
+    try{ const u=new URL(url); return /\.(mp3|m4a|ogg|wav|webm)$/i.test(u.pathname); }catch(e){ return false; }
   }
-  function parseYouTubeId(u){
+  function parseYouTubeId(url){
     try{
-      const x=new URL(u);
-      if(x.hostname.includes("youtu.be")) return x.pathname.replace("/","");
-      if(x.hostname.includes("youtube.com")){
-        const v=x.searchParams.get("v"); if(v) return v;
-        const m=x.pathname.match(/\/shorts\/([^\/]+)/); if(m) return m[1];
-        const e=x.pathname.match(/\/embed\/([^\/]+)/); if(e) return e[1];
+      const u = new URL(url);
+      if (u.hostname.includes("youtu.be")) return u.pathname.replace("/", "") || null;
+      if (u.hostname.includes("youtube.com")){
+        const v = u.searchParams.get("v"); if (v) return v;
+        const m = u.pathname.match(/\\/shorts\\/([^\\/]+)/); if (m) return m[1];
+        const e = u.pathname.match(/\\/embed\\/([^\\/]+)/); if (e) return e[1];
       }
       return null;
     }catch(e){ return null; }
   }
-  function parseVimeoId(u){
+  function parseVimeoId(url){
     try{
-      const x=new URL(u);
-      if(!x.hostname.includes("vimeo.com")) return null;
-      const m=x.pathname.match(/\/(\d+)/);
-      return m?m[1]:null;
+      const u = new URL(url);
+      if (!u.hostname.includes("vimeo.com")) return null;
+      const m = u.pathname.match(/\\/(\\d+)/);
+      return m ? m[1] : null;
     }catch(e){ return null; }
   }
-
-  const meta = document.getElementById("meta");
-  const host = document.getElementById("mediaHost");
-  const mtype = document.getElementById("mtype");
-
-  meta.textContent = "Source: " + (url || "-");
-
-  if(!url){
-    host.innerHTML = '<div class="hint">미디어 링크가 비어 있습니다.</div>';
-  }else{
-    const yt = parseYouTubeId(url);
-    const vm = parseVimeoId(url);
-
-    host.innerHTML = `
-      <div class="media-controls">
-        <button class="primary" id="btnPlay">재생</button>
-        <button id="btnStop">정지</button>
-        <span class="chip" id="chip">-</span>
-      </div>
-      <div id="stage"></div>`;
-
-    const stage = document.getElementById("stage");
-    const chip = document.getElementById("chip");
-    const btnPlay = document.getElementById("btnPlay");
-    const btnStop = document.getElementById("btnStop");
-
-    // YouTube
-    if(yt){
-      mtype.textContent = "YouTube";
-      chip.textContent = "YouTube Player API";
-      stage.innerHTML = '<div class="iframe-wrap"><div id="ytMount" style="width:100%;height:100%"></div></div>';
-
-      let player = null;
-
-      function loadYtApi(){
-        return new Promise((resolve)=>{
-          if(window.YT && window.YT.Player) return resolve(true);
-          const prev = window.onYouTubeIframeAPIReady;
-          window.onYouTubeIframeAPIReady = function(){ if(typeof prev==="function") prev(); resolve(true); };
-          const s=document.createElement("script");
-          s.src="https://www.youtube.com/iframe_api"; s.async=true;
-          s.onerror=()=>resolve(false);
-          document.head.appendChild(s);
-        });
-      }
-
-      loadYtApi().then((ok)=>{
-        if(!ok){
-          chip.textContent = "API 로딩 실패(버튼 제어 제한)";
-          stage.innerHTML = '<div class="iframe-wrap"><iframe src="https://www.youtube.com/embed/'+encodeURIComponent(yt)+'?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
-          btnPlay.onclick=()=>{};
-          btnStop.onclick=()=>{};
-          return;
-        }
-        player = new YT.Player("ytMount", { videoId: yt, playerVars: { rel:0, modestbranding:1 } });
-        btnPlay.onclick=()=>{ try{ player.playVideo(); }catch(e){} };
-        btnStop.onclick=()=>{ try{ player.stopVideo(); }catch(e){} };
-      });
-    }
-    // Vimeo
-    else if(vm){
-      mtype.textContent = "Vimeo";
-      chip.textContent = "Vimeo Player API";
-      stage.innerHTML = '<div class="iframe-wrap"><iframe id="vimeoFrame" src="https://player.vimeo.com/video/'+encodeURIComponent(vm)+'" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>';
-
-      function loadVimeoApi(){
-        return new Promise((resolve)=>{
-          if(window.Vimeo && window.Vimeo.Player) return resolve(true);
-          const s=document.createElement("script");
-          s.src="https://player.vimeo.com/api/player.js"; s.async=true;
-          s.onload=()=>resolve(true);
-          s.onerror=()=>resolve(false);
-          document.head.appendChild(s);
-        });
-      }
-
-      loadVimeoApi().then((ok)=>{
-        if(!ok){
-          chip.textContent = "API 로딩 실패(버튼 제어 제한)";
-          btnPlay.onclick=()=>{};
-          btnStop.onclick=()=>{};
-          return;
-        }
-        const frame = document.getElementById("vimeoFrame");
-        const p = new Vimeo.Player(frame);
-        btnPlay.onclick=()=>{ try{ p.play(); }catch(e){} };
-        btnStop.onclick=async ()=>{ try{ await p.pause(); await p.setCurrentTime(0); }catch(e){} };
-      });
-    }
-    // Audio
-    else if(isAudioUrl(url)){
-      mtype.textContent = "Audio";
-      chip.textContent = "HTML Audio";
-      stage.innerHTML = '<audio id="audioEl" controls preload="metadata" src="'+url.replace(/"/g,"&quot;")+'"></audio><div class="hint" style="margin-top:10px">오디오 파일은 서버 CORS/권한 설정에 따라 재생이 제한될 수 있습니다.</div>';
-      const a = document.getElementById("audioEl");
-      btnPlay.onclick=()=>{ try{ a.play(); }catch(e){} };
-      btnStop.onclick=()=>{ try{ a.pause(); a.currentTime=0; }catch(e){} };
-    }
-    // Fallback
-    else{
-      mtype.textContent = "Link";
-      chip.textContent = "Generic iframe (버튼 제어 제한)";
-      stage.innerHTML = '<div class="hint">YouTube/Vimeo/Audio로 인식되지 않아 iframe으로 표시합니다. 버튼 제어는 제한됩니다.</div><div class="iframe-wrap" style="margin-top:10px"><iframe src="'+url.replace(/"/g,"&quot;")+'"></iframe></div>';
-      btnPlay.onclick=()=>{};
-      btnStop.onclick=()=>{};
-    }
+  function escapeHtml(str){
+    return (str ?? "").replace(/[&<>"']/g, s => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[s]));
   }
+  function escapeHtmlAttr(str){ return escapeHtml(str).replace(/`/g,"&#96;"); }
+
+  // ===== DOM =====
+  const mediaUrl = document.getElementById("mediaUrl");
+  const docText = document.getElementById("docText");
+  const applyBtn = document.getElementById("applyBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const mediaHost = document.getElementById("mediaHost");
+  const docHost = document.getElementById("docHost");
+  const mediaTypeBadge = document.getElementById("mediaTypeBadge");
+  const sourceBadge = document.getElementById("sourceBadge");
+  const leftMeta = document.getElementById("leftMeta");
+  const rightMeta = document.getElementById("rightMeta");
+  const statusPill = document.getElementById("statusPill");
+  const errorBox = document.getElementById("errorBox");
+
+  function setError(msg){
+    if(!msg){ errorBox.style.display="none"; errorBox.textContent=""; return; }
+    errorBox.style.display="block"; errorBox.textContent=msg;
+  }
+
+  function buildMediaHtml(url){
+    const ytId = parseYouTubeId(url);
+    if (ytId){
+      return {
+        type: "YouTube",
+        html: `
+          <div class="iframe-wrap">
+            <iframe
+              src="https://www.youtube.com/embed/${encodeURIComponent(ytId)}?rel=0&modestbranding=1"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              title="YouTube Video"></iframe>
+          </div>
+          <div class="hint" style="margin-top:10px">재생은 영상 안의 기본 ▶ 버튼을 누르세요.</div>
+        `
+      };
+    }
+
+    const vmId = parseVimeoId(url);
+    if (vmId){
+      return {
+        type: "Vimeo",
+        html: `
+          <div class="iframe-wrap">
+            <iframe
+              src="https://player.vimeo.com/video/${encodeURIComponent(vmId)}"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowfullscreen
+              title="Vimeo Video"></iframe>
+          </div>
+        `
+      };
+    }
+
+    if (isAudioUrl(url)){
+      return {
+        type: "Audio",
+        html: `
+          <audio controls preload="metadata" src="${escapeHtmlAttr(url)}"></audio>
+          <div class="hint" style="margin-top:10px">오디오 URL은 서버 정책(CORS/권한)에 따라 재생이 제한될 수 있습니다.</div>
+        `
+      };
+    }
+
+    return {
+      type: "Link",
+      html: `
+        <div class="hint">YouTube/Vimeo/Audio로 인식되지 않아 iframe으로 표시합니다.</div>
+        <div class="iframe-wrap" style="margin-top:10px">
+          <iframe src="${escapeHtmlAttr(url)}" title="Embedded Content"></iframe>
+        </div>
+      `
+    };
+  }
+
+  async function applyPreview(){
+    setError(null);
+    const url = (mediaUrl.value||"").trim();
+    const text = (docText.value||"").trim();
+
+    if(!url && !text){
+      setError("미디어 링크 또는 설명자료 중 최소 1개는 입력해 주세요.");
+      statusPill.textContent = "NEED INPUT";
+      return;
+    }
+
+    // Right
+    docHost.textContent = text || "오른쪽 텍스트가 비어 있습니다.";
+    rightMeta.textContent = text ? (text.length + " chars") : "-";
+
+    // Left
+    if(!url){
+      mediaHost.innerHTML = `<div class="hint">미디어 링크가 비어 있습니다.</div>`;
+      mediaTypeBadge.textContent = "Media: -";
+      sourceBadge.textContent = "Source: -";
+      leftMeta.textContent = "-";
+      statusPill.textContent = "APPLIED";
+      return;
+    }
+
+    const m = buildMediaHtml(url);
+    mediaHost.innerHTML = m.html;
+    mediaTypeBadge.textContent = "Media: " + m.type;
+    sourceBadge.textContent = "Source: " + url;
+    leftMeta.textContent = m.type;
+    statusPill.textContent = "APPLIED";
+  }
+
+  function buildLessonHtml(url, text){
+    const safeText = escapeHtml(text || "");
+    const m = url ? buildMediaHtml(url) : {type:"-", html:`<div class="hint">미디어 링크가 비어 있습니다.</div>`};
+
+    return `<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Lesson</title>
+<style>
+  :root{--bg:#0b1020;--text:#e9ecf5;--muted:#aab3d6;--border:rgba(255,255,255,.12);--shadow:0 12px 28px rgba(0,0,0,.35);--radius:16px;
+        --sans: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, Helvetica, Arial;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--text);background:var(--bg);padding:18px}
+  .frame{max-width:1200px;margin:0 auto;border:1px solid var(--border);border-radius:var(--radius);
+         background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));box-shadow:var(--shadow);overflow:hidden}
+  .hd{padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .hd .title{font-weight:800;font-size:14px}
+  .hd .meta{font-size:12px;color:var(--muted)}
+  .lesson{display:grid;grid-template-columns:1fr;gap:12px;padding:14px}
+  @media (min-width:980px){.lesson{grid-template-columns:1fr 2fr}}
+  .pane{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.18);display:flex;flex-direction:column;height:70vh;min-height:520px;max-height:820px}
+  @media (max-width:979px){.pane{height:60vh;min-height:420px}}
+  .pane-hd{padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .pane-hd .small{font-size:12px;color:var(--muted)}
+  .pane-bd{padding:12px;flex:1 1 auto;min-height:0}
+  .pane-bd.scrollable{overflow:auto}
+  .content{white-space:pre-wrap;line-height:1.65;font-size:14px}
+  .hint{font-size:12px;color:var(--muted);line-height:1.5}
+  .iframe-wrap{position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#000}
+  .iframe-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  audio{width:100%}
+</style>
+</head><body>
+<div class="frame">
+  <div class="hd">
+    <div class="title">미디어 + 스크립트</div>
+    <div class="meta">Source: ${escapeHtml(url||"-")}</div>
+  </div>
+  <div class="lesson">
+    <div class="pane">
+      <div class="pane-hd"><div><strong>미디어</strong> <span class="small">왼쪽 1/3</span></div><span class="small">${m.type}</span></div>
+      <div class="pane-bd">${m.html}</div>
+    </div>
+    <div class="pane">
+      <div class="pane-hd"><div><strong>스크립트/설명/문제</strong> <span class="small">오른쪽 2/3 (스크롤)</span></div><span class="small">${safeText.length} chars</span></div>
+      <div class="pane-bd scrollable"><div class="content">${safeText || "텍스트가 비어 있습니다."}</div></div>
+    </div>
+  </div>
+</div>
+</body></html>`;
+  }
+
+  applyBtn.addEventListener("click", applyPreview);
+
+  exportBtn.addEventListener("click", ()=>{
+    setError(null);
+    const url = (mediaUrl.value||"").trim();
+    const text = (docText.value||"").trim();
+    if(!url && !text){
+      setError("내보내기: 미디어 링크 또는 설명자료 중 최소 1개는 입력해 주세요.");
+      statusPill.textContent="NEED INPUT";
+      return;
+    }
+    const html = buildLessonHtml(url, text);
+    const blob = new Blob([html], {type:"text/html;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "lesson.html";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    statusPill.textContent="EXPORTED";
+  });
+
+  resetBtn.addEventListener("click", ()=>{
+    setError(null);
+    mediaUrl.value=""; docText.value="";
+    mediaHost.innerHTML = `<div class="hint">미디어 링크를 넣고 “미리보기 적용”을 누르세요.</div>`;
+    docHost.textContent = "오른쪽에 텍스트가 표시됩니다.";
+    mediaTypeBadge.textContent="Media: -";
+    sourceBadge.textContent="Source: -";
+    leftMeta.textContent="-";
+    rightMeta.textContent="-";
+    statusPill.textContent="READY";
+  });
+
+  // 기본 예시
+  mediaUrl.value = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  docText.value = ("[긴 텍스트 스크롤 테스트]\\n\\n" + "내용\\n".repeat(250));
+  applyPreview();
 </script>
 </body>
 </html>
